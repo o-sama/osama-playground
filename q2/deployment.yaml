@@ -1,0 +1,59 @@
+# https://kubernetes.io/docs/concepts/workloads/controllers/deployment/
+# https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bitcoin-core
+  labels:
+    app: bitcoin-core
+spec:
+  replicas: 3 
+  selector:
+    matchLabels:
+      app: bitcoin-core
+  template:
+    metadata:
+      labels:
+        app: bitcoin-core
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000 # Could also not define this and let it default to the user defined in the dockerfile 
+      containers:
+      - name: bitcoin-core
+        image: <PATH_TO_BTC_CORE_IMAGE>
+        livenessProbe:
+          exec:
+            command:
+              - bitcoin-cli
+              - -rpcwait
+              - getblockchaininfo
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          failureThreshold: 3
+        readinessProbe:
+          exec:
+            command:
+              - bitcoin-cli
+              - -rpcwait
+              - getnetworkinfo
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          failureThreshold: 3
+        ports:
+        - containerPort: 8332
+        - containerPort: 8333
+        volumeMounts:
+        - name: bitcoin-data
+          mountPath: /home/bitcoin/.bitcoin
+        resources:
+          requests:
+            cpu: "500m"
+            memory: "1Gi"
+          limits:
+            cpu: "2"
+            memory: "2Gi"
+      volumes:
+      - name: bitcoin-data
+        persistentVolumeClaim:
+          claimName: bitcoin-core-pvc

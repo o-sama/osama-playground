@@ -1,0 +1,40 @@
+FROM ubuntu:22.04
+
+# Definitions
+ENV BTC_VERSION=22.0
+ENV BTC_CORE_FILE=bitcoin-${BITCOIN_VERSION}-x86_64-linux-gnu.tar.gz
+ENV BTC_CORE_URL=https://bitcoincore.org/bin/bitcoin-core-${BITCOIN_VERSION}
+ENV PATH=/opt/bitcoin-${BTC_VERSION}/bin:$PATH
+
+# Install packages
+RUN apt-get update && apt-get install -y \
+  curl \ 
+  gnupg \ 
+  ca-certificates \
+  git && \
+  rm -rf /var/lib/apt/lists/*
+
+# Download the binaries, checksum, and signatures
+RUN curl -SLO ${BTC_CORE_URL}/${BTC_CORE_FILE}
+RUN curl -SLO ${BTC_CORE_URL}/SHA256SUMS
+
+# Verify - https://bitcoincore.org/en/download/#:~:text=Linux,-verification%20instructions
+RUN sha256sum --ignore-missing --check SHA256SUMS
+RUN git clone https://github.com/bitcoin-core/guix.sigs && gpg --import guix.sigs/builder-keys/*
+# Don't need to have every signature
+RUN gpg --verify SHA256SUMS.asc 2>&1 | grep "Good signature"
+
+# Extract binary
+RUN tar -xzf ${BTC_CORE_FILE} -C /opt && \
+  rm ${BTC_CORE_FILE} SHA256SUMS SHA256SUMS.asc
+
+# Use non-root user
+RUN useradd -m btc
+USER btc
+
+# Could also expose but opting out because current usecase doesn't require them: 18332 18333 18443 18444 38332 38333
+EXPOSE 8332 8333
+
+# Entrypoint and default command
+ENTRYPOINT [ "bitcoind" ]
+CMD [ "--printtoconsole" ]

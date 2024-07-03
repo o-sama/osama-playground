@@ -1,0 +1,16 @@
+# https://kubernetes.io/docs/concepts/services-networking/service/
+apiVersion: v1
+kind: Service
+metadata:
+  name: bitcoin-core-service
+spec:
+  selector:
+    app: bitcoin-core
+  ports:
+    - protocol: TCP
+      port: 8332
+      targetPort: 8332
+    - protocol: TCP
+      port: 8333
+      targetPort: 8333
+  type: ClusterIP

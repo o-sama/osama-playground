@@ -1,0 +1,13 @@
+# Using a PVC here because if we don't persist blockchain data across pod restarts, then we might have to resync on restarts
+# Since the current chain is ~300GB, a resync can be quite time consuming.
+# https://kubernetes.io/docs/concepts/storage/persistent-volumes
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: bitcoin-core-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 500Gi
